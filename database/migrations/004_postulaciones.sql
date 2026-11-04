@@ -1,0 +1,25 @@
+-- Postulaciones a la Red. No se pide documento de identidad ni datos bancarios (WEB-02 sección 8).
+CREATE TABLE postulaciones (
+  id                      INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  codigo                  VARCHAR(12)  NULL COMMENT 'POST-0001, se genera al guardar',
+  nombre                  VARCHAR(120) NOT NULL,
+  correo                  VARCHAR(160) NOT NULL,
+  telefono                VARCHAR(20)  NOT NULL,
+  territorio_id           INT UNSIGNED NOT NULL,
+  experiencia             ENUM('sin_experiencia', 'menos_1', '1_3', 'mas_3') NOT NULL,
+  disponibilidad          ENUM('hasta_5', '5_10', '10_20', 'mas_20') NOT NULL,
+  sectores                VARCHAR(255) NULL,
+  motivo                  VARCHAR(500) NULL,
+  puntaje                 TINYINT UNSIGNED NULL COMMENT 'Apoyo de 0 a 100; no decide',
+  estado                  ENUM('recibida', 'preseleccionado', 'aclaracion', 'no_seleccionado', 'aprobado') NOT NULL DEFAULT 'recibida',
+  consentimiento_version  VARCHAR(80)  NOT NULL,
+  consentimiento_fecha    DATETIME     NOT NULL,
+  origen                  ENUM('web', 'portal') NOT NULL DEFAULT 'web',
+  creado_en               DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  actualizado_en          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_postulaciones_codigo (codigo),
+  KEY ix_postulaciones_correo (correo),
+  KEY ix_postulaciones_estado (estado),
+  CONSTRAINT fk_postulaciones_territorio FOREIGN KEY (territorio_id) REFERENCES territorios (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

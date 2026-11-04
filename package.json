@@ -1,0 +1,25 @@
+{
+  "name": "tuplus-partners-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API del Portal TUPLUS Partners (Node.js, Express y MySQL)",
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "db:crear": "node database/scripts/migrar.js",
+    "db:semilla": "node database/scripts/sembrar.js",
+    "db:reiniciar": "node database/scripts/migrar.js --reiniciar && node database/scripts/sembrar.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.3",
+    "helmet": "^8.3.0",
+    "mysql2": "^3.24.6"
+  }
+}

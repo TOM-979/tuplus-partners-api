@@ -1,0 +1,25 @@
+-- Partners activados. Se crean a partir de una postulación aprobada.
+CREATE TABLE partners (
+  id                 INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  codigo             VARCHAR(10)  NULL COMMENT 'P-001, se genera al activar',
+  usuario_id         INT UNSIGNED NOT NULL,
+  postulacion_id     INT UNSIGNED NULL,
+  nombre             VARCHAR(120) NOT NULL,
+  telefono           VARCHAR(20)  NULL,
+  nivel_id           TINYINT UNSIGNED NOT NULL,
+  es_lider_regional  BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Función L6; coexiste con el rango',
+  territorio_id      INT UNSIGNED NOT NULL,
+  estado             ENUM('activo', 'suspendido', 'baja') NOT NULL DEFAULT 'activo',
+  activado_en        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  creado_en          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  actualizado_en     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_partners_codigo (codigo),
+  UNIQUE KEY uq_partners_usuario (usuario_id),
+  UNIQUE KEY uq_partners_postulacion (postulacion_id),
+  KEY ix_partners_territorio (territorio_id),
+  CONSTRAINT fk_partners_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id),
+  CONSTRAINT fk_partners_postulacion FOREIGN KEY (postulacion_id) REFERENCES postulaciones (id),
+  CONSTRAINT fk_partners_nivel FOREIGN KEY (nivel_id) REFERENCES niveles (id),
+  CONSTRAINT fk_partners_territorio FOREIGN KEY (territorio_id) REFERENCES territorios (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

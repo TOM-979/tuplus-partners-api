@@ -1,0 +1,65 @@
+erDiagram
+  niveles ||--o{ partners : "rango de"
+  territorios ||--o{ postulaciones : "recibe"
+  territorios ||--o{ partners : "asignado a"
+  usuarios ||--o| partners : "cuenta de"
+  postulaciones ||--o| partners : "se convierte en"
+  partners ||--o{ oportunidades : "origina"
+  usuarios ||--o{ historial_cambios : "hace el cambio"
+
+  niveles {
+    tinyint id PK
+    char codigo "L0 a L6"
+    varchar nombre
+    enum tipo "rango o funcion"
+  }
+  territorios {
+    int id PK
+    varchar nombre
+    varchar region
+    enum estado "convocatoria"
+    smallint capacidad
+  }
+  usuarios {
+    int id PK
+    varchar correo "único"
+    varchar contrasena_hash
+    enum rol "partner, lider_regional, direccion"
+    enum estado
+    tinyint intentos_fallidos
+  }
+  postulaciones {
+    int id PK
+    varchar codigo "POST-0001"
+    varchar correo
+    int territorio_id FK
+    enum estado
+    tinyint puntaje "apoyo, no decide"
+    varchar consentimiento_version
+  }
+  partners {
+    int id PK
+    varchar codigo "P-001"
+    int usuario_id FK
+    int postulacion_id FK
+    tinyint nivel_id FK
+    boolean es_lider_regional
+    int territorio_id FK
+  }
+  oportunidades {
+    int id PK
+    varchar codigo "OP-0001"
+    int partner_id FK
+    varchar empresa
+    enum etapa
+    decimal monto
+  }
+  historial_cambios {
+    bigint id PK
+    enum entidad
+    int entidad_id
+    varchar accion
+    varchar valor_anterior
+    varchar valor_nuevo
+    int usuario_id FK
+  }
