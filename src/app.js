@@ -9,7 +9,7 @@ export const app = express()
 
 app.disable('x-powered-by')
 app.use(helmet())
-app.use(cors({ origin: env.corsOrigins, methods: ['GET', 'POST', 'PATCH'] }))
+app.use(cors({ origin: env.corsOrigins, methods: ['GET', 'POST', 'PATCH', 'DELETE'] }))
 app.use(express.json({ limit: '20kb' }))
 
 app.use('/api', rutas)
