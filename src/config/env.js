@@ -24,4 +24,12 @@ export const env = {
   sesionMinutos: Number(process.env.SESION_MINUTOS) || 480,
   inactividadMinutos: Number(process.env.INACTIVIDAD_MINUTOS) || 30,
   requiere2faRoles: (process.env.REQUIERE_2FA_ROLES || 'direccion').split(',').map((r) => r.trim()).filter(Boolean),
+  adminPanelApiKey: process.env.ADMIN_PANEL_API_KEY || '',
+  smtp: {
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: Number(process.env.SMTP_PORT) || 465,
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || '',
+    desde: process.env.SMTP_FROM || process.env.SMTP_USER || '',
+  },
 }
