@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { asyncHandler } from '../utils/asyncHandler.js'
 import { autenticarApiKey } from '../middlewares/autenticarApiKey.js'
-import * as direccion from '../controllers/direccionController.js'
+import * as integracion from '../controllers/integracionController.js'
 
 // Acceso de SOLO LECTURA para sistemas externos (el AdminPanel legado en Render),
 // protegido por una clave fija (X-Api-Key), no por login de usuario.
@@ -10,7 +10,7 @@ import * as direccion from '../controllers/direccionController.js'
 const router = Router()
 router.use(autenticarApiKey)
 
-router.get('/postulaciones', asyncHandler(direccion.listarPostulaciones))
-router.get('/partners', asyncHandler(direccion.listarPartners))
+router.get('/postulaciones', asyncHandler(integracion.listarPostulaciones))
+router.get('/partners', asyncHandler(integracion.listarPartners))
 
 export default router
