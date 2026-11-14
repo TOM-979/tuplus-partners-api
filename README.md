@@ -42,21 +42,39 @@ NODE_ENV=production npm run db:desplegar
 
 `db:desplegar` aplica solo las migraciones pendientes (nunca borra datos; las migraciones son idempotentes) y luego `db:verificar` comprueba, solo con lectura, que existan todas las tablas, `oportunidades.moneda`, `oportunidades.proximo_paso` y los niveles y territorios. Si falta algo, termina con error.
 
-### Render: migraciones automáticas en cada despliegue
+### Railway: migraciones automáticas en cada despliegue
 
-En el servicio de Render (Settings → Build & Deploy):
+En el servicio de la API en Railway: **Settings → Deploy → "Add pre-deploy step"** y escribe:
 
-| Campo | Valor |
-|---|---|
-| Build Command | `npm install` |
-| **Pre-Deploy Command** | `npm run db:desplegar` |
-| Start Command | `npm start` |
+```
+npm run db:desplegar
+```
 
-Render ejecuta el Pre-Deploy Command después del build y antes de publicar la nueva versión, con las variables de entorno del servicio. Si falla (migración con error o base incompleta), Render **no publica** esa versión y deja la anterior funcionando. Es seguro repetirlo: solo aplica las migraciones que faltan y no borra nada.
+Railway ejecuta ese paso antes de iniciar cada nueva versión, con las variables del servicio. Si falla (migración con error o base incompleta), no se publica esa versión y sigue la anterior. Es seguro repetirlo: solo aplica las migraciones que faltan, no borra nada y no falla si ya están aplicadas. Start Command: `npm start`.
 
-Variables en Render → Environment: `NODE_ENV=production`, `DB_*`, `JWT_SECRET` (32+ caracteres), `TRUST_PROXY=1` y `CORS_ORIGINS=https://tuplus-partners-portal.vercel.app,https://partners.tuplus.pe` (la URL del portal en Vercel y, si se usa, el dominio propio; sin barra final). Si `CORS_ORIGINS` falta, la API no arranca. Cada cambio de variables reinicia el servicio.
+Variables en Railway → Variables: `NODE_ENV=production`, `DB_*`, `JWT_SECRET` (32+ caracteres), `TRUST_PROXY=1` y `CORS_ORIGINS=https://tuplus-partners-portal.vercel.app,https://partners.tuplus.pe` (URL del portal en Vercel y, si se usa, el dominio propio; sin barra final). Si `CORS_ORIGINS` falta, la API no arranca.
 
-Para ver un error 500: Render → tu servicio → **Logs**, filtra por la ruta (por ejemplo `/api/etapas/cursos`). En producción el navegador solo recibe un mensaje genérico; el error real (por ejemplo `Table '...' doesn't exist`) aparece únicamente en esos logs.
+Para ver un error 500: Railway → servicio → **Deployments → View Logs** y busca la ruta (por ejemplo `/api/etapas/cursos`). En producción el navegador solo recibe un mensaje genérico; el error real aparece únicamente en esos logs.
+
+### Limpiar datos de demostración
+
+Si la base de producción quedó con los datos que sembraba el antiguo `sembrarDemo.js`, usa `npm run db:limpiar-demo`. Solo toca filas identificadas exactamente como demo: la cuenta `partner@tuplus.pe` con su partner P-001 "Carlos Vega" y todo lo suyo; las oportunidades "Botica Nova Salud", "Ferretería El Tornillo" y "Estudio Legal Ríos & Asociados"; las postulaciones de `lucia.fernandez@`, `jorge.salazar@` y `mariana.castro@example.com`; y los cursos "Bienvenida a la Red TUPLUS" y "Diagnóstico B2B con la metodología TUPLUS" con sus lecciones, evaluaciones y progreso. **Nunca** toca `direccion@tuplus.pe`, niveles, territorios ni otras postulaciones o datos.
+
+Pasos en la Console de Railway (servicio de la API → pestaña de comandos / **Shell**):
+
+1. Haz un respaldo de la base antes de borrar (Railway → servicio MySQL → Backups, o `mysqldump`).
+2. Simulación (no cambia nada, lista lo que borraría con conteos):
+   ```
+   npm run db:limpiar-demo
+   ```
+3. Revisa la lista. Los `AVISO` son filas parecidas que se omiten a propósito; un `BLOQUEO` significa que P-001 tiene datos que no son de demostración (por ejemplo una oportunidad real): en ese caso P-001 y su cuenta **no se borran**, y se borra solo el resto de lo listado.
+4. Si todo es correcto, borra de verdad (una sola transacción: si algo falla, no se borra nada):
+   ```
+   npm run db:limpiar-demo -- --confirmar
+   ```
+5. Verifica repitiendo el paso 2: debe decir "No hay datos de demostración que limpiar". El script deja un registro en `auditoria_etapas` (entidad `limpieza_demo`).
+
+Es idempotente (se puede repetir sin efecto) y se niega a correr si `NODE_ENV` no es `production`; en local hay que agregar `--forzar-local`.
 
 Primera vez en una base vacía: además `npm run db:semilla` y `npm run admin:crear -- correo clave`. Nunca uses `db:reiniciar` en producción (está bloqueado).
 
@@ -83,6 +101,7 @@ Primera vez en una base vacía: además `npm run db:semilla` y `npm run admin:cr
 | `npm run db:semilla` | Carga o actualiza los catálogos iniciales (niveles, territorios) |
 | `npm run db:reiniciar` | Borra la base, la crea de nuevo y carga niveles y territorios. Bloqueado en producción |
 | `npm run db:verificar` | Solo lectura: revisa que la base tenga tablas, columnas y catálogos necesarios |
+| `npm run db:limpiar-demo` | Simulación de la limpieza de datos demo; con `--confirmar` borra (ver "Limpiar datos de demostración") |
 | `npm run db:desplegar` | Migraciones pendientes + verificación (para producción) |
 | `npm run admin:crear -- <correo> <clave>` | Crea la cuenta de Dirección (o cambia su clave) |
 | `npm test` | Pruebas de integración sobre una base aparte (`<DB_NAME>_test`); no toca la base del portal |
