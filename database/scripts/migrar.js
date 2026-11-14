@@ -16,7 +16,8 @@ async function main() {
     await servidor.query(`DROP DATABASE IF EXISTS \`${env.db.name}\``)
     console.log(`Base ${env.db.name} borrada.`)
   }
-  await servidor.query(`CREATE DATABASE IF NOT EXISTS \`${env.db.name}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`)
+  // En producción la base ya existe y el usuario puede no tener permiso para crearla
+  if (!env.esProduccion) await servidor.query(`CREATE DATABASE IF NOT EXISTS \`${env.db.name}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`)
   await servidor.end()
 
   const db = await conectar()

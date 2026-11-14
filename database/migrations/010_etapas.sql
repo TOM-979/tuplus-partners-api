@@ -1,10 +1,10 @@
-CREATE TABLE evaluaciones_curso (
+CREATE TABLE IF NOT EXISTS evaluaciones_curso (
   curso_id INT UNSIGNED PRIMARY KEY,
   minimo TINYINT UNSIGNED NOT NULL DEFAULT 70,
   preguntas JSON NOT NULL,
   FOREIGN KEY (curso_id) REFERENCES cursos(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-CREATE TABLE intentos_evaluacion (
+CREATE TABLE IF NOT EXISTS intentos_evaluacion (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   partner_id INT UNSIGNED NOT NULL,
   curso_id INT UNSIGNED NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE intentos_evaluacion (
   FOREIGN KEY (partner_id) REFERENCES partners(id),
   FOREIGN KEY (curso_id) REFERENCES cursos(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-CREATE TABLE certificados (
+CREATE TABLE IF NOT EXISTS certificados (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   codigo VARCHAR(50) NOT NULL UNIQUE,
   partner_id INT UNSIGNED NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE certificados (
   FOREIGN KEY (partner_id) REFERENCES partners(id),
   FOREIGN KEY (curso_id) REFERENCES cursos(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-CREATE TABLE empresas_crm (
+CREATE TABLE IF NOT EXISTS empresas_crm (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   partner_id INT UNSIGNED NOT NULL,
   nombre VARCHAR(160) NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE empresas_crm (
   UNIQUE KEY uq_empresa_partner(partner_id, nombre),
   FOREIGN KEY (partner_id) REFERENCES partners(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-CREATE TABLE contactos_crm (
+CREATE TABLE IF NOT EXISTS contactos_crm (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   empresa_id INT UNSIGNED NOT NULL,
   nombre VARCHAR(120) NOT NULL,
@@ -46,7 +46,7 @@ CREATE TABLE contactos_crm (
   telefono VARCHAR(30) NULL,
   FOREIGN KEY (empresa_id) REFERENCES empresas_crm(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-CREATE TABLE seguimientos_crm (
+CREATE TABLE IF NOT EXISTS seguimientos_crm (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   oportunidad_id INT UNSIGNED NOT NULL,
   usuario_id INT UNSIGNED NOT NULL,
@@ -58,7 +58,7 @@ CREATE TABLE seguimientos_crm (
   FOREIGN KEY (oportunidad_id) REFERENCES oportunidades(id),
   FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-CREATE TABLE comisiones_manual (
+CREATE TABLE IF NOT EXISTS comisiones_manual (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   oportunidad_id INT UNSIGNED NOT NULL UNIQUE,
   monto DECIMAL(12,2) NOT NULL,
@@ -74,7 +74,7 @@ CREATE TABLE comisiones_manual (
   FOREIGN KEY (creado_por) REFERENCES usuarios(id),
   FOREIGN KEY (aprobado_por) REFERENCES usuarios(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-CREATE TABLE auditoria_etapas (
+CREATE TABLE IF NOT EXISTS auditoria_etapas (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   usuario_id INT UNSIGNED NOT NULL,
   entidad VARCHAR(40) NOT NULL,
