@@ -1,6 +1,7 @@
 import { AppError } from '../utils/AppError.js'
 import * as cursoModel from '../models/cursoModel.js'
 import * as nivelModel from '../models/nivelModel.js'
+import { completar } from './etapasService.js'
 
 async function ordenDelNivel(codigo) {
   const nivel = await nivelModel.buscarPorCodigo(codigo)
@@ -23,10 +24,7 @@ export async function verCurso(usuario, cursoId) {
   return { ...curso, lecciones }
 }
 
+// Ruta antigua: delega en etapasService, que valida nivel, publicación y tipo de lección
 export async function completarLeccion(usuario, leccionId) {
-  if (!usuario.partner) throw new AppError(403, 'La Academia es solo para Partners.')
-  const leccion = await cursoModel.buscarLeccion(leccionId)
-  if (!leccion) throw new AppError(404, 'La lección no existe.')
-  await cursoModel.marcarCompletada({ partnerId: usuario.partner.id, leccionId })
-  return { mensaje: 'Lección marcada como completada.' }
+  return completar(usuario, leccionId)
 }

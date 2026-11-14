@@ -18,6 +18,7 @@ function publico(usuario) {
 
 // Paso 1: correo + contraseña. Si el rol necesita doble verificación, no entrega token todavía.
 export async function iniciarSesion({ correo, contrasena }) {
+  if (typeof correo !== 'string' || typeof contrasena !== 'string' || !correo || !contrasena) throw new AppError(400, 'Escribe tu correo y tu contraseña.')
   const usuario = await usuarioModel.buscarPorCorreo(correo)
   // Mismo mensaje exista o no la cuenta, para no revelar qué correos están registrados
   const credencialesInvalidas = () => new AppError(401, 'Correo o contraseña incorrectos.')
@@ -53,6 +54,7 @@ export async function iniciarSesion({ correo, contrasena }) {
 
 // Paso 2 (solo roles con 2FA): confirma el código de un solo uso y entrega el token
 export async function confirmarCodigo({ usuarioId, codigo }) {
+  if (!Number.isInteger(Number(usuarioId)) || !/^\d{6}$/.test(String(codigo ?? ''))) throw new AppError(400, 'Escribe el código de 6 dígitos.')
   const pendiente = await codigoModel.buscarVigente(usuarioId)
   if (!pendiente) throw new AppError(401, 'El código venció o no existe. Vuelve a iniciar sesión.')
   if (pendiente.intentos >= 5) throw new AppError(429, 'Demasiados intentos. Vuelve a iniciar sesión para recibir un código nuevo.')
