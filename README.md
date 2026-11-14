@@ -14,9 +14,9 @@ API (interfaz de programación) del **Portal TUPLUS Partners**. Va en un reposit
 ```bash
 npm install
 cp .env.example .env      # completa los datos de tu MySQL y cambia JWT_SECRET
-npm run db:crear           # crea la base y todas las tablas
-npm run db:semilla         # carga los niveles L0–L6 y los territorios iniciales
-npm run db:demo            # (opcional) cuentas y datos de prueba — ver abajo
+npm run db:crear           # crea la base y aplica las migraciones (sin borrar datos)
+npm run db:semilla         # carga los niveles L0–L6 y los territorios de TUPLUS
+npm run admin:crear -- correo@tuplus.pe "ClaveSegura123"   # crea la cuenta real de Dirección
 npm run dev                # http://localhost:4000/api
 ```
 
@@ -27,16 +27,22 @@ CREATE USER 'tuplus_dev'@'localhost' IDENTIFIED BY 'cambia_esta_clave';
 GRANT ALL PRIVILEGES ON `tuplus_partners%`.* TO 'tuplus_dev'@'localhost';
 ```
 
-### Cuentas de prueba (después de `npm run db:demo`)
+**No hay datos de demostración.** La base solo trae lo estructural (niveles y territorios) y la cuenta de Dirección que tú crees. Los cursos, evaluaciones, Partners, empresas, oportunidades y comisiones los crean personas reales desde el portal o el AdminPanel.
 
-| Correo | Contraseña | Rol | Notas |
-|---|---|---|---|
-| `direccion@tuplus.pe` | `Direccion.2026` | `direccion` | Pide código de 2.º paso. En desarrollo, el código se imprime en la consola del servidor (no se envía correo real todavía) |
-| `partner@tuplus.pe` | `Partner.2026` | `partner` | Partner P-001, nivel L2, con 3 oportunidades de ejemplo en el CRM |
+`admin:crear` recibe el correo y la contraseña como argumentos o con las variables `ADMIN_CORREO` y `ADMIN_CONTRASENA` (mínimo 12 caracteres con mayúsculas, minúsculas y números). Si la cuenta ya existe, actualiza su contraseña. Dirección pide código de 2.º paso al iniciar sesión.
 
-También crea 3 postulaciones pendientes de revisión y 2 cursos de Academia con lecciones, para poder probar cada pantalla sin esperar datos reales.
+## Variables de .env
 
-⚠️ **Nunca ejecutes `npm run db:demo` contra la base de producción.**
+| Variable | Obligatoria | Qué es |
+|---|---|---|
+| `PORT` | no | Puerto de la API (4000) |
+| `NODE_ENV` | no | `development` o `production` |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | sí | Conexión a MySQL |
+| `JWT_SECRET` | sí | Clave de los tokens. En producción debe tener **al menos 32 caracteres** o la API no arranca |
+| `CORS_ORIGINS` | en producción | Orígenes del navegador permitidos, separados por coma. En desarrollo, si falta, usa `http://localhost:5173,http://127.0.0.1:5173`. En producción, si falta, la API no arranca. Producción: `https://partners.tuplus.pe,<URL de Vercel del portal>` |
+| `TRUST_PROXY` | no | Cantidad de proxys delante de la API (1 en Vercel/Nginx/Railway) para que el límite de intentos vea la IP real |
+| `SESION_MINUTOS` / `INACTIVIDAD_MINUTOS` | no | Duración de la sesión (480) y cierre por inactividad (30) |
+| `REQUIERE_2FA_ROLES` | no | Roles con código por correo (`direccion`) |
 
 ## Comandos
 
@@ -46,8 +52,9 @@ También crea 3 postulaciones pendientes de revisión y 2 cursos de Academia con
 | `npm start` | Inicia la API (para el servidor) |
 | `npm run db:crear` | Aplica las migraciones pendientes. Se puede ejecutar varias veces |
 | `npm run db:semilla` | Carga o actualiza los catálogos iniciales (niveles, territorios) |
-| `npm run db:demo` | Carga cuentas y datos de prueba (ver tabla arriba). Solo para desarrollo |
-| `npm run db:reiniciar` | Borra la base, la crea de nuevo, carga catálogos y datos de prueba. Bloqueado en producción |
+| `npm run db:reiniciar` | Borra la base, la crea de nuevo y carga niveles y territorios. Bloqueado en producción |
+| `npm run admin:crear -- <correo> <clave>` | Crea la cuenta de Dirección (o cambia su clave) |
+| `npm test` | Pruebas de integración sobre una base aparte (`<DB_NAME>_test`); no toca la base del portal |
 
 ## Estructura
 
@@ -65,7 +72,8 @@ src/
 database/
 ├── migrations/    un archivo .sql por tabla, en orden
 ├── seeds/         niveles L0–L6 y territorios iniciales
-└── scripts/       migrar.js, sembrar.js y sembrarDemo.js
+└── scripts/       migrar.js, sembrar.js y crearAdmin.js
+tests/             pruebas de integración (npm test)
 docs/
 └── diagrama-tablas.png   diagrama de las tablas (fuente: diagrama-tablas.mmd)
 ```
@@ -84,6 +92,9 @@ Cada capa solo llama a la de abajo: **ruta → controlador → servicio → mode
 | `partners` | Partners activados, con código, nivel, territorio y función de Líder Regional |
 | `oportunidades` | CRM B2B, desde el primer contacto hasta la posventa |
 | `cursos` / `lecciones` / `progreso_academia` | Contenido de la Academia y el avance de cada Partner |
+| `evaluaciones_curso` / `intentos_evaluacion` / `certificados` | Evaluación de cada curso, intentos de los Partners y constancias emitidas |
+| `empresas_crm` / `contactos_crm` / `seguimientos_crm` | Cartera de empresas, contactos y tareas de seguimiento |
+| `comisiones_manual` / `auditoria_etapas` | Comisiones aprobadas manualmente por Dirección y su registro de auditoría |
 | `historial_cambios` | Quién cambió qué, cuándo y por qué. La API solo inserta y lee |
 | `migraciones` | Control interno de las migraciones aplicadas |
 
@@ -97,7 +108,8 @@ Todas cuelgan de `/api`. Las que llevan 🔒 exigen `Authorization: Bearer <toke
 
 | Método | Ruta | Qué hace |
 |---|---|---|
-| GET | `/salud` | Indica si la API y la base de datos responden |
+| GET | `/salud` | `{ ok: true }` si la API y MySQL responden; si no, 503 |
+| GET | `/certificados/verificar/:codigo` | `{ valido, nombre, titulo, emitido_en }` (solo `{ valido: false }` si no existe) |
 | GET | `/niveles` | Lista los niveles L0–L6 |
 | GET | `/territorios` | Lista los territorios y el estado de su convocatoria |
 | POST | `/postulaciones` | Registra una postulación |
@@ -136,6 +148,30 @@ El token (JWT) dura `SESION_MINUTOS` (480 por defecto) y se manda en cada solici
 | GET | `/academia/cursos` | Cursos habilitados hasta el nivel actual del Partner, con su avance |
 | GET | `/academia/cursos/:id` | Lecciones del curso (403 si el nivel no lo habilita) |
 | POST | `/academia/lecciones/:id/completar` | Marca una lección como completada |
+
+### Etapas 2, 3 y 4 (`/etapas`) 🔒
+
+Las respuestas llevan `{ dato: ... }`. Las listas vacías devuelven `[]`.
+
+| Método | Ruta | Rol | Qué hace |
+|---|---|---|---|
+| GET | `/etapas/cursos` | Partner / Dirección | Cursos con `total_lecciones`, `lecciones_completadas`, `tiene_evaluacion` (Partner: publicados y hasta su nivel) |
+| GET | `/etapas/cursos/:id` | idem | Curso + `lecciones` + `intentos` + `evaluacion` (sin respuestas correctas) |
+| POST | `/etapas/cursos` | solo Dirección | Crea un curso en borrador con lecciones y preguntas → `{ id }` |
+| PATCH | `/etapas/cursos/:id` | solo Dirección | `{ publicado: boolean }` |
+| POST | `/etapas/lecciones/:id/completar` | Partner | Marca la lección como completada |
+| POST | `/etapas/cursos/:id/evaluar` | Partner | `{ respuestas: [índices] }` → `{ nota, aprobado, minimo }`. Máx. 5 intentos por hora; si aprueba, emite el certificado |
+| GET | `/etapas/certificados` | según alcance | Certificados emitidos |
+| GET | `/etapas/empresas` | según alcance | Empresas con sus `contactos` |
+| POST | `/etapas/empresas` | Partner | `{ nombre, sector, ciudad }` |
+| POST | `/etapas/empresas/:id/contactos` | Partner dueño | `{ nombre, cargo, correo, telefono }` |
+| GET / POST | `/etapas/oportunidades/:id/seguimientos` | según alcance | Lista o crea seguimientos |
+| PATCH | `/etapas/seguimientos/:id/completar` | según alcance | Cierra un seguimiento |
+| GET | `/etapas/gestion` | Dirección, Líder Regional | `{ oportunidades, partners, comisiones, pendientes }` |
+| POST | `/etapas/comisiones` | solo Dirección | `{ oportunidadId, monto, sustento }` (oportunidad en cierre o posventa) |
+| PATCH | `/etapas/comisiones/:id` | solo Dirección | `{ estado, referencia }`: pendiente → aprobada/rechazada → pagada |
+
+Los errores siempre son `{ error: "mensaje en español", detalles? }`.
 
 ### Dirección (`/direccion`) 🔒 `direccion` / `lider_regional` (lo marcado "solo Dirección" es exclusivo)
 
@@ -180,9 +216,9 @@ Reglas que aplica:
 Esto responde directamente a lo que preguntó el equipo de ciberseguridad (inyección SQL, fuerza bruta, password spraying):
 
 - **Inyección SQL**: todas las consultas usan parámetros (`?`), nunca se concatena texto del usuario dentro de un SQL. `mysql2` escapa los valores automáticamente.
-- **Fuerza bruta / password spraying**: `express-rate-limit` corta a 10 intentos cada 10 minutos por IP en `/auth/login` y `/auth/codigo`; además, cada cuenta se bloquea 15 minutos tras 5 contraseñas incorrectas seguidas (columna `bloqueado_hasta` en `usuarios`).
+- **Fuerza bruta / password spraying**: `express-rate-limit` corta a 10 intentos fallidos cada 10 minutos por IP y también por cuenta (correo en `/auth/login`, usuario en `/auth/codigo`); además, cada cuenta se bloquea 15 minutos tras 5 contraseñas incorrectas seguidas (columna `bloqueado_hasta` en `usuarios`).
 - **Contraseñas**: se guardan solo como hash con `bcrypt` (nunca en texto plano); nunca se devuelven en ninguna respuesta.
-- **Sesión**: token JWT firmado con `JWT_SECRET` (cámbialo en producción), con expiración (`SESION_MINUTOS`). El cierre por inactividad (`INACTIVIDAD_MINUTOS`) lo controla el frontend.
+- **Sesión**: token JWT firmado con `JWT_SECRET` (en producción, mínimo 32 caracteres), con expiración (`SESION_MINUTOS`). El cierre por inactividad (`INACTIVIDAD_MINUTOS`) lo controla el frontend.
 - **Doble verificación**: obligatoria para el rol `direccion` (configurable en `REQUIERE_2FA_ROLES`): un código de 6 dígitos de un solo uso, con hash propio, vence en 10 minutos y máximo 5 intentos.
 - **Permisos por rol**: cada ruta protegida revisa el rol en el servidor (no basta con ocultar un botón en el frontend); además hay aislamiento de datos: un Partner solo ve su propia cartera del CRM, un Líder Regional solo su territorio.
 - Claves y credenciales solo en `.env`, que no se sube. Se sube `.env.example` sin datos reales.

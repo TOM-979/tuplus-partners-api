@@ -13,8 +13,9 @@
     "start": "node src/server.js",
     "db:crear": "node database/scripts/migrar.js",
     "db:semilla": "node database/scripts/sembrar.js",
-    "db:demo": "node database/scripts/sembrarDemo.js",
-    "db:reiniciar": "node database/scripts/migrar.js --reiniciar && node database/scripts/sembrar.js && node database/scripts/sembrarDemo.js"
+    "db:reiniciar": "node database/scripts/migrar.js --reiniciar && node database/scripts/sembrar.js",
+    "admin:crear": "node database/scripts/crearAdmin.js",
+    "test": "node tests/correr.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

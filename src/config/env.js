@@ -1,18 +1,37 @@
 import 'dotenv/config'
 
 // Lee y valida las variables de entorno una sola vez al arrancar.
+const fallar = (mensaje) => {
+  console.error(`Configuración inválida: ${mensaje}`)
+  process.exit(1)
+}
+
 const requeridas = ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'JWT_SECRET']
 const faltantes = requeridas.filter((n) => !process.env[n])
-if (faltantes.length) {
-  console.error(`Faltan variables en el archivo .env: ${faltantes.join(', ')}. Copia .env.example como .env y complétalo.`)
-  process.exit(1)
+if (faltantes.length) fallar(`faltan variables en el archivo .env: ${faltantes.join(', ')}. Copia .env.example como .env y complétalo.`)
+
+const nodeEnv = process.env.NODE_ENV || 'development'
+const esProduccion = nodeEnv === 'production'
+
+if (esProduccion && process.env.JWT_SECRET.length < 32) {
+  fallar('JWT_SECRET debe tener al menos 32 caracteres en producción.')
+}
+
+// Orígenes del navegador autorizados. En desarrollo, si no se define, se usan los del portal local.
+const ORIGENES_DESARROLLO = ['http://localhost:5173', 'http://127.0.0.1:5173']
+let corsOrigins = (process.env.CORS_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean)
+if (!corsOrigins.length) {
+  if (esProduccion) fallar('CORS_ORIGINS está vacío. Define los dominios del portal, por ejemplo https://partners.tuplus.pe.')
+  if (nodeEnv === 'development') corsOrigins = ORIGENES_DESARROLLO
 }
 
 export const env = {
   port: Number(process.env.PORT) || 4000,
-  nodeEnv: process.env.NODE_ENV || 'development',
-  esProduccion: process.env.NODE_ENV === 'production',
-  corsOrigins: (process.env.CORS_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean),
+  nodeEnv,
+  esProduccion,
+  corsOrigins,
+  // Cantidad de proxys delante de la API (para leer bien la IP real en el límite de intentos)
+  trustProxy: Number(process.env.TRUST_PROXY) || 0,
   db: {
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT) || 3306,
