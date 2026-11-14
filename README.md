@@ -42,7 +42,21 @@ NODE_ENV=production npm run db:desplegar
 
 `db:desplegar` aplica solo las migraciones pendientes (nunca borra datos; las migraciones son idempotentes) y luego `db:verificar` comprueba, solo con lectura, que existan todas las tablas, `oportunidades.moneda`, `oportunidades.proximo_paso` y los niveles y territorios. Si falta algo, termina con error.
 
-Para que sea automático, en Vercel (Project Settings → Build Command) usa `npm run db:desplegar`: si una migración falla, el despliegue se detiene en vez de publicar una API rota. Requiere que la base acepte conexiones desde el build de Vercel.
+### Render: migraciones automáticas en cada despliegue
+
+En el servicio de Render (Settings → Build & Deploy):
+
+| Campo | Valor |
+|---|---|
+| Build Command | `npm install` |
+| **Pre-Deploy Command** | `npm run db:desplegar` |
+| Start Command | `npm start` |
+
+Render ejecuta el Pre-Deploy Command después del build y antes de publicar la nueva versión, con las variables de entorno del servicio. Si falla (migración con error o base incompleta), Render **no publica** esa versión y deja la anterior funcionando. Es seguro repetirlo: solo aplica las migraciones que faltan y no borra nada.
+
+Variables en Render → Environment: `NODE_ENV=production`, `DB_*`, `JWT_SECRET` (32+ caracteres), `TRUST_PROXY=1` y `CORS_ORIGINS=https://tuplus-partners-portal.vercel.app,https://partners.tuplus.pe` (la URL del portal en Vercel y, si se usa, el dominio propio; sin barra final). Si `CORS_ORIGINS` falta, la API no arranca. Cada cambio de variables reinicia el servicio.
+
+Para ver un error 500: Render → tu servicio → **Logs**, filtra por la ruta (por ejemplo `/api/etapas/cursos`). En producción el navegador solo recibe un mensaje genérico; el error real (por ejemplo `Table '...' doesn't exist`) aparece únicamente en esos logs.
 
 Primera vez en una base vacía: además `npm run db:semilla` y `npm run admin:crear -- correo clave`. Nunca uses `db:reiniciar` en producción (está bloqueado).
 
