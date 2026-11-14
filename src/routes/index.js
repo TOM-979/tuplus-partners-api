@@ -9,6 +9,7 @@ import crm from './crm.routes.js'
 import academia from './academia.routes.js'
 import etapas from './etapas.routes.js'
 import certificados from './certificados.routes.js'
+import integracion from './integracion.routes.js'
 
 // Todas las rutas de la API cuelgan de /api
 const router = Router()
@@ -22,4 +23,5 @@ router.use('/crm', crm)
 router.use('/academia', academia)
 router.use('/etapas', etapas)
 router.use('/certificados', certificados)
+router.use('/integracion', integracion)
 export default router
