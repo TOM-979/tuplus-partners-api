@@ -31,6 +31,21 @@ GRANT ALL PRIVILEGES ON `tuplus_partners%`.* TO 'tuplus_dev'@'localhost';
 
 `admin:crear` recibe el correo y la contraseña como argumentos o con las variables `ADMIN_CORREO` y `ADMIN_CONTRASENA` (mínimo 12 caracteres con mayúsculas, minúsculas y números). Si la cuenta ya existe, actualiza su contraseña. Dirección pide código de 2.º paso al iniciar sesión.
 
+## Desplegar a producción (migraciones)
+
+Cada vez que se publique una versión con migraciones nuevas, **antes** de usarla corre contra la base de producción:
+
+```bash
+# Con las variables de producción (DB_HOST, DB_NAME, DB_USER, DB_PASSWORD) en el entorno o en un .env apuntando a producción
+NODE_ENV=production npm run db:desplegar
+```
+
+`db:desplegar` aplica solo las migraciones pendientes (nunca borra datos; las migraciones son idempotentes) y luego `db:verificar` comprueba, solo con lectura, que existan todas las tablas, `oportunidades.moneda`, `oportunidades.proximo_paso` y los niveles y territorios. Si falta algo, termina con error.
+
+Para que sea automático, en Vercel (Project Settings → Build Command) usa `npm run db:desplegar`: si una migración falla, el despliegue se detiene en vez de publicar una API rota. Requiere que la base acepte conexiones desde el build de Vercel.
+
+Primera vez en una base vacía: además `npm run db:semilla` y `npm run admin:crear -- correo clave`. Nunca uses `db:reiniciar` en producción (está bloqueado).
+
 ## Variables de .env
 
 | Variable | Obligatoria | Qué es |
@@ -53,6 +68,8 @@ GRANT ALL PRIVILEGES ON `tuplus_partners%`.* TO 'tuplus_dev'@'localhost';
 | `npm run db:crear` | Aplica las migraciones pendientes. Se puede ejecutar varias veces |
 | `npm run db:semilla` | Carga o actualiza los catálogos iniciales (niveles, territorios) |
 | `npm run db:reiniciar` | Borra la base, la crea de nuevo y carga niveles y territorios. Bloqueado en producción |
+| `npm run db:verificar` | Solo lectura: revisa que la base tenga tablas, columnas y catálogos necesarios |
+| `npm run db:desplegar` | Migraciones pendientes + verificación (para producción) |
 | `npm run admin:crear -- <correo> <clave>` | Crea la cuenta de Dirección (o cambia su clave) |
 | `npm test` | Pruebas de integración sobre una base aparte (`<DB_NAME>_test`); no toca la base del portal |
 
